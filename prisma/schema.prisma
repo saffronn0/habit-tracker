@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Habit {
+  id             String   @id @default(cuid())
+  name           String
+  emoji          String   @default("✨")
+  color          String   @default("violet")
+  pointStake     Int      @default(10)
+  consequenceText String?
+  archived       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Date (YYYY-MM-DD) of the last missed day we already deducted points for,
+  // so a broken streak is only penalized once instead of on every page load.
+  lastPenaltyDate String?
+
+  logs HabitLog[]
+
+  @@map("habits")
+}
+
+model HabitLog {
+  id        String   @id @default(cuid())
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  // Stored as YYYY-MM-DD (local date, not a timestamp) so a day is unambiguous
+  // regardless of time-of-day the check-in happens.
+  date      String
+  completed Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@map("habit_logs")
+}
+
+model Profile {
+  id          String @id @default("singleton")
+  totalPoints Int    @default(0)
+
+  @@map("profile")
+}
