@@ -1,17 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f5ff;
-  --background-alt: #fdf6ec;
-  --foreground: #201a34;
-  --card: #ffffff;
-  --card-border: #ece8fb;
-  --muted: #8b84a8;
+  --text: #050a21;
+  --background: #fff6c3;
+  --primary: #e0ce58;
+  --secondary: #f9ff63;
+  --accent: #d0a43d;
+
+  --foreground: var(--text);
+  --card: #fffdf0;
+  --card-border: color-mix(in srgb, var(--text) 12%, var(--background));
+  --muted: color-mix(in srgb, var(--text) 45%, var(--background));
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-text: var(--text);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
   --color-card: var(--card);
   --color-card-border: var(--card-border);
   --color-muted: var(--muted);
@@ -20,47 +28,20 @@
   --font-display: var(--font-fredoka);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #15111f;
-    --background-alt: #1b1730;
-    --foreground: #f1eefb;
-    --card: #1e1a2e;
-    --card-border: #322b4a;
-    --muted: #9d96bd;
-  }
-}
-
 body {
   background: radial-gradient(
       circle at 15% 0%,
-      color-mix(in srgb, var(--background-alt) 70%, transparent),
+      color-mix(in srgb, var(--secondary) 45%, transparent),
       transparent 45%
     ),
     radial-gradient(
       circle at 85% 15%,
-      color-mix(in srgb, #ffd6ec 35%, transparent),
+      color-mix(in srgb, var(--accent) 30%, transparent),
       transparent 40%
     ),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-}
-
-@media (prefers-color-scheme: dark) {
-  body {
-    background: radial-gradient(
-        circle at 15% 0%,
-        color-mix(in srgb, #4c3a6e 45%, transparent),
-        transparent 45%
-      ),
-      radial-gradient(
-        circle at 85% 15%,
-        color-mix(in srgb, #6e3a5c 35%, transparent),
-        transparent 40%
-      ),
-      var(--background);
-  }
 }
 
 .font-display {
@@ -108,5 +89,5 @@ body {
 }
 
 ::selection {
-  background: color-mix(in srgb, #a78bfa 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
 }

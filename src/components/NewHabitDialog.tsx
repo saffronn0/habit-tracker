@@ -42,7 +42,7 @@ export default function NewHabitDialog() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-500/20 transition-transform active:scale-[0.97]"
+        className="flex items-center gap-2 rounded-2xl bg-gradient-to-br from-primary to-accent px-4 py-2.5 text-sm font-semibold text-foreground shadow-md shadow-accent/30 transition-transform active:scale-[0.97]"
       >
         <Plus size={16} strokeWidth={3} />
         New habit
@@ -84,7 +84,7 @@ export default function NewHabitDialog() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Drink 2L of water"
                 maxLength={60}
-                className="mb-4 w-full rounded-xl border border-card-border bg-transparent px-3 py-2 text-sm outline-none ring-violet-400 focus:ring-2"
+                className="mb-4 w-full rounded-xl border border-card-border bg-transparent px-3 py-2 text-sm outline-none ring-accent focus:ring-2"
               />
 
               <label className="mb-1 block text-xs font-medium text-muted">Icon</label>
@@ -95,7 +95,7 @@ export default function NewHabitDialog() {
                     type="button"
                     onClick={() => setEmoji(e)}
                     className={`rounded-xl py-1.5 text-lg transition-transform hover:scale-110 ${
-                      emoji === e ? "bg-violet-100 ring-2 ring-violet-400 dark:bg-violet-500/20" : ""
+                      emoji === e ? "bg-primary/25 ring-2 ring-accent" : ""
                     }`}
                   >
                     {e}
@@ -128,7 +128,7 @@ export default function NewHabitDialog() {
                 step={5}
                 value={pointStake}
                 onChange={(e) => setPointStake(Number(e.target.value))}
-                className="mb-4 w-full accent-violet-500"
+                className="mb-4 w-full accent-accent"
               />
 
               <label className="mb-1 block text-xs font-medium text-muted">
@@ -140,13 +140,13 @@ export default function NewHabitDialog() {
                 placeholder="No gaming this weekend"
                 maxLength={140}
                 rows={2}
-                className="mb-5 w-full resize-none rounded-xl border border-card-border bg-transparent px-3 py-2 text-sm outline-none ring-violet-400 focus:ring-2"
+                className="mb-5 w-full resize-none rounded-xl border border-card-border bg-transparent px-3 py-2 text-sm outline-none ring-accent focus:ring-2"
               />
 
               <button
                 type="submit"
                 disabled={isPending || !name.trim()}
-                className="w-full rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 py-2.5 text-sm font-semibold text-white shadow-md transition-transform active:scale-[0.98] disabled:opacity-50"
+                className="w-full rounded-xl bg-gradient-to-br from-primary to-accent py-2.5 text-sm font-semibold text-foreground shadow-md transition-transform active:scale-[0.98] disabled:opacity-50"
               >
                 {isPending ? "Creating…" : "Create habit"}
               </button>

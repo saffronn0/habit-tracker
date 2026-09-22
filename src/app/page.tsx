@@ -30,7 +30,9 @@ export default async function Home() {
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold sm:text-3xl">Momentum</h1>
+          <h1 className="font-display bg-gradient-to-r from-accent to-primary bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
+            Momentum
+          </h1>
           <p className="text-sm text-muted">Show up daily. Keep your streak. Stay honest.</p>
         </div>
         <div className="flex items-center gap-3">

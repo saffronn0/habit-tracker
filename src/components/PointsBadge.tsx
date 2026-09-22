@@ -19,7 +19,7 @@ export default function PointsBadge({ points }: { points: number }) {
 
   return (
     <div className="glass-card flex items-center gap-2 rounded-2xl px-4 py-2 shadow-sm">
-      <Sparkles size={16} className="text-amber-400" />
+      <Sparkles size={16} className="text-accent" />
       <motion.span
         key={points}
         initial={{ y: -8, opacity: 0 }}
