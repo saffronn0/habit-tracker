@@ -44,6 +44,16 @@ export async function reconcilePenalties(): Promise<TriggeredPenalty[]> {
         where: { id: habit.id },
         data: { lastPenaltyDate: yesterday },
       });
+      if (habit.pointStake > 0) {
+        await prisma.pointsEntry.create({
+          data: {
+            date: yesterday,
+            delta: -habit.pointStake,
+            reason: "penalty",
+            habitId: habit.id,
+          },
+        });
+      }
       totalDeduction += habit.pointStake;
       triggered.push({
         habitName: habit.name,
@@ -98,6 +108,7 @@ export async function createHabit(input: {
     },
   });
   revalidatePath("/");
+  revalidatePath("/insights");
 }
 
 export async function checkInHabit(habitId: string) {
@@ -107,12 +118,22 @@ export async function checkInHabit(habitId: string) {
     update: { completed: true },
     create: { habitId, date: today, completed: true },
   });
-  const profile = await getProfile();
-  await prisma.profile.update({
-    where: { id: "singleton" },
-    data: { totalPoints: profile.totalPoints + CHECKIN_REWARD },
+
+  const existingEntry = await prisma.pointsEntry.findFirst({
+    where: { habitId, date: today, reason: "checkin" },
   });
+  if (!existingEntry) {
+    await prisma.pointsEntry.create({
+      data: { habitId, date: today, delta: CHECKIN_REWARD, reason: "checkin" },
+    });
+    const profile = await getProfile();
+    await prisma.profile.update({
+      where: { id: "singleton" },
+      data: { totalPoints: profile.totalPoints + CHECKIN_REWARD },
+    });
+  }
   revalidatePath("/");
+  revalidatePath("/insights");
 }
 
 export async function undoCheckInHabit(habitId: string) {
@@ -122,18 +143,27 @@ export async function undoCheckInHabit(habitId: string) {
   });
   if (existing?.completed) {
     await prisma.habitLog.delete({ where: { id: existing.id } });
-    const profile = await getProfile();
-    await prisma.profile.update({
-      where: { id: "singleton" },
-      data: {
-        totalPoints: Math.max(0, profile.totalPoints - CHECKIN_REWARD),
-      },
+
+    const entry = await prisma.pointsEntry.findFirst({
+      where: { habitId, date: today, reason: "checkin" },
     });
+    if (entry) {
+      await prisma.pointsEntry.delete({ where: { id: entry.id } });
+      const profile = await getProfile();
+      await prisma.profile.update({
+        where: { id: "singleton" },
+        data: {
+          totalPoints: Math.max(0, profile.totalPoints - CHECKIN_REWARD),
+        },
+      });
+    }
   }
   revalidatePath("/");
+  revalidatePath("/insights");
 }
 
 export async function deleteHabit(habitId: string) {
   await prisma.habit.delete({ where: { id: habitId } });
   revalidatePath("/");
+  revalidatePath("/insights");
 }

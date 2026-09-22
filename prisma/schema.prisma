@@ -23,7 +23,8 @@ model Habit {
   // so a broken streak is only penalized once instead of on every page load.
   lastPenaltyDate String?
 
-  logs HabitLog[]
+  logs         HabitLog[]
+  pointsEntries PointsEntry[]
 
   @@map("habits")
 }
@@ -40,6 +41,21 @@ model HabitLog {
 
   @@unique([habitId, date])
   @@map("habit_logs")
+}
+
+model PointsEntry {
+  id      String  @id @default(cuid())
+  // YYYY-MM-DD, same convention as HabitLog.date
+  date    String
+  delta   Int
+  reason  String
+  habitId String?
+  habit   Habit?  @relation(fields: [habitId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@map("points_entries")
 }
 
 model Profile {

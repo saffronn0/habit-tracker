@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { BarChart3 } from "lucide-react";
 import { getDashboardData } from "@/lib/actions";
 import { computeStats } from "@/lib/streaks";
 import PointsBadge from "@/components/PointsBadge";
@@ -37,6 +39,13 @@ export default async function Home() {
         </div>
         <div className="flex items-center gap-3">
           <PointsBadge points={profile.totalPoints} />
+          <Link
+            href="/insights"
+            className="glass-card flex items-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-sm font-medium text-muted transition-colors hover:text-foreground"
+          >
+            <BarChart3 size={16} />
+            <span className="hidden sm:inline">Insights</span>
+          </Link>
           <NewHabitDialog />
         </div>
       </header>
