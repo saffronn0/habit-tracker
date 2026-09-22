@@ -19,7 +19,7 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  title: "Momentum — Habit Tracker",
+  title: "Habit Tracker",
   description: "Track your habits, keep your streaks, stay accountable.",
 };
 

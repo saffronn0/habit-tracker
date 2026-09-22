@@ -8,8 +8,26 @@ datasource db {
   directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+
+  habits        Habit[]
+  pointsEntries PointsEntry[]
+  profile       Profile?
+
+  @@map("users")
+}
+
 model Habit {
   id             String   @id @default(cuid())
+  // Nullable so pre-auth data can keep existing until claimed by the first
+  // account created after this migration (see claimLegacyData in actions.ts).
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
   emoji          String   @default("✨")
   color          String   @default("violet")
@@ -26,6 +44,7 @@ model Habit {
   logs         HabitLog[]
   pointsEntries PointsEntry[]
 
+  @@index([userId])
   @@map("habits")
 }
 
@@ -45,6 +64,9 @@ model HabitLog {
 
 model PointsEntry {
   id      String  @id @default(cuid())
+  // Nullable for the same reason as Habit.userId — see claimLegacyData.
+  userId  String?
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
   // YYYY-MM-DD, same convention as HabitLog.date
   date    String
   delta   Int
@@ -55,12 +77,15 @@ model PointsEntry {
   createdAt DateTime @default(now())
 
   @@index([date])
+  @@index([userId])
   @@map("points_entries")
 }
 
 model Profile {
-  id          String @id @default("singleton")
-  totalPoints Int    @default(0)
+  id          String  @id @default(cuid())
+  userId      String? @unique
+  user        User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalPoints Int     @default(0)
 
   @@map("profile")
 }

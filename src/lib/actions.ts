@@ -2,15 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "./prisma";
+import { auth } from "./auth";
 import { todayStr, yesterdayStr, dateStr } from "./dates";
 
 const CHECKIN_REWARD = 2;
 
-export async function getProfile() {
+async function requireUserId() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Not authenticated");
+  return session.user.id;
+}
+
+export async function getProfile(userId: string) {
   return prisma.profile.upsert({
-    where: { id: "singleton" },
+    where: { userId },
     update: {},
-    create: { id: "singleton", totalPoints: 0 },
+    create: { userId, totalPoints: 0 },
   });
 }
 
@@ -24,10 +31,10 @@ export type TriggeredPenalty = {
 // Runs on every dashboard load. For each habit, checks whether yesterday
 // passed without a completed check-in and, if so, docks its point stake
 // exactly once (guarded by lastPenaltyDate so reloading never double-charges).
-export async function reconcilePenalties(): Promise<TriggeredPenalty[]> {
+export async function reconcilePenalties(userId: string): Promise<TriggeredPenalty[]> {
   const yesterday = yesterdayStr();
   const habits = await prisma.habit.findMany({
-    where: { archived: false },
+    where: { userId, archived: false },
     include: { logs: { where: { date: yesterday } } },
   });
 
@@ -47,6 +54,7 @@ export async function reconcilePenalties(): Promise<TriggeredPenalty[]> {
       if (habit.pointStake > 0) {
         await prisma.pointsEntry.create({
           data: {
+            userId,
             date: yesterday,
             delta: -habit.pointStake,
             reason: "penalty",
@@ -65,9 +73,9 @@ export async function reconcilePenalties(): Promise<TriggeredPenalty[]> {
   }
 
   if (totalDeduction > 0) {
-    const profile = await getProfile();
+    const profile = await getProfile(userId);
     await prisma.profile.update({
-      where: { id: "singleton" },
+      where: { userId },
       data: { totalPoints: Math.max(0, profile.totalPoints - totalDeduction) },
     });
   }
@@ -76,14 +84,15 @@ export async function reconcilePenalties(): Promise<TriggeredPenalty[]> {
 }
 
 export async function getDashboardData() {
-  const triggered = await reconcilePenalties();
+  const userId = await requireUserId();
+  const triggered = await reconcilePenalties(userId);
   const [habits, profile] = await Promise.all([
     prisma.habit.findMany({
-      where: { archived: false },
+      where: { userId, archived: false },
       orderBy: { createdAt: "asc" },
       include: { logs: true },
     }),
-    getProfile(),
+    getProfile(userId),
   ]);
   return { habits, profile, triggered };
 }
@@ -95,11 +104,13 @@ export async function createHabit(input: {
   pointStake: number;
   consequenceText?: string;
 }) {
+  const userId = await requireUserId();
   const name = input.name.trim();
   if (!name) throw new Error("Habit name is required");
 
   await prisma.habit.create({
     data: {
+      userId,
       name,
       emoji: input.emoji || "✨",
       color: input.color || "violet",
@@ -112,50 +123,58 @@ export async function createHabit(input: {
 }
 
 export async function checkInHabit(habitId: string) {
-  const today = todayStr();
-  await prisma.habitLog.upsert({
-    where: { habitId_date: { habitId, date: today } },
-    update: { completed: true },
-    create: { habitId, date: today, completed: true },
-  });
+  const userId = await requireUserId();
+  const habit = await prisma.habit.findFirst({ where: { id: habitId, userId } });
+  if (!habit) throw new Error("Habit not found");
 
-  const existingEntry = await prisma.pointsEntry.findFirst({
-    where: { habitId, date: today, reason: "checkin" },
-  });
+  const today = todayStr();
+  const [, existingEntry] = await Promise.all([
+    prisma.habitLog.upsert({
+      where: { habitId_date: { habitId, date: today } },
+      update: { completed: true },
+      create: { habitId, date: today, completed: true },
+    }),
+    prisma.pointsEntry.findFirst({ where: { habitId, date: today, reason: "checkin" } }),
+  ]);
+
   if (!existingEntry) {
-    await prisma.pointsEntry.create({
-      data: { habitId, date: today, delta: CHECKIN_REWARD, reason: "checkin" },
-    });
-    const profile = await getProfile();
-    await prisma.profile.update({
-      where: { id: "singleton" },
-      data: { totalPoints: profile.totalPoints + CHECKIN_REWARD },
-    });
+    await Promise.all([
+      prisma.pointsEntry.create({
+        data: { userId, habitId, date: today, delta: CHECKIN_REWARD, reason: "checkin" },
+      }),
+      prisma.profile.upsert({
+        where: { userId },
+        update: { totalPoints: { increment: CHECKIN_REWARD } },
+        create: { userId, totalPoints: CHECKIN_REWARD },
+      }),
+    ]);
   }
   revalidatePath("/");
   revalidatePath("/insights");
 }
 
 export async function undoCheckInHabit(habitId: string) {
+  const userId = await requireUserId();
+  const habit = await prisma.habit.findFirst({ where: { id: habitId, userId } });
+  if (!habit) throw new Error("Habit not found");
+
   const today = todayStr();
   const existing = await prisma.habitLog.findUnique({
     where: { habitId_date: { habitId, date: today } },
   });
   if (existing?.completed) {
-    await prisma.habitLog.delete({ where: { id: existing.id } });
-
-    const entry = await prisma.pointsEntry.findFirst({
-      where: { habitId, date: today, reason: "checkin" },
-    });
+    const [, entry] = await Promise.all([
+      prisma.habitLog.delete({ where: { id: existing.id } }),
+      prisma.pointsEntry.findFirst({ where: { habitId, date: today, reason: "checkin" } }),
+    ]);
     if (entry) {
-      await prisma.pointsEntry.delete({ where: { id: entry.id } });
-      const profile = await getProfile();
-      await prisma.profile.update({
-        where: { id: "singleton" },
-        data: {
-          totalPoints: Math.max(0, profile.totalPoints - CHECKIN_REWARD),
-        },
-      });
+      await Promise.all([
+        prisma.pointsEntry.delete({ where: { id: entry.id } }),
+        prisma.profile.update({
+          where: { userId },
+          data: { totalPoints: { decrement: CHECKIN_REWARD } },
+        }),
+      ]);
     }
   }
   revalidatePath("/");
@@ -163,7 +182,8 @@ export async function undoCheckInHabit(habitId: string) {
 }
 
 export async function deleteHabit(habitId: string) {
-  await prisma.habit.delete({ where: { id: habitId } });
+  const userId = await requireUserId();
+  await prisma.habit.deleteMany({ where: { id: habitId, userId } });
   revalidatePath("/");
   revalidatePath("/insights");
 }

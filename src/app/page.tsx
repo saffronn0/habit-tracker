@@ -2,15 +2,20 @@ import Link from "next/link";
 import { BarChart3 } from "lucide-react";
 import { getDashboardData } from "@/lib/actions";
 import { computeStats } from "@/lib/streaks";
+import { auth } from "@/lib/auth";
 import PointsBadge from "@/components/PointsBadge";
 import NewHabitDialog from "@/components/NewHabitDialog";
 import PenaltyBanner from "@/components/PenaltyBanner";
 import HabitGrid from "@/components/HabitGrid";
+import SignOutButton from "@/components/auth/SignOutButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const { habits, profile, triggered } = await getDashboardData();
+  const [{ habits, profile, triggered }, session] = await Promise.all([
+    getDashboardData(),
+    auth(),
+  ]);
 
   const items = habits.map((habit) => {
     const logs = habit.logs.map((l) => ({ date: l.date, completed: l.completed }));
@@ -30,14 +35,17 @@ export default async function Home() {
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display bg-gradient-to-r from-accent to-primary bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
-            Momentum
+      <header className="mb-8 flex flex-col items-center gap-4">
+        <div className="text-center">
+          <h1 className="font-display bg-gradient-to-r from-accent to-primary bg-clip-text text-3xl font-bold text-transparent sm:text-4xl">
+            Habit Tracker
           </h1>
-          <p className="text-sm text-muted">Show up daily. Keep your streak. Stay honest.</p>
+          <p className="mt-1 text-sm text-muted">Show up daily. Keep your streak. Stay honest.</p>
+          {session?.user?.email && (
+            <p className="mt-0.5 text-xs text-muted opacity-70">{session.user.email}</p>
+          )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <PointsBadge points={profile.totalPoints} />
           <Link
             href="/insights"
@@ -47,6 +55,7 @@ export default async function Home() {
             <span className="hidden sm:inline">Insights</span>
           </Link>
           <NewHabitDialog />
+          <SignOutButton />
         </div>
       </header>
 

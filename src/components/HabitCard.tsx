@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Check, Flame, Trash2 } from "lucide-react";
 import { checkInHabit, undoCheckInHabit, deleteHabit } from "@/lib/actions";
@@ -121,27 +121,82 @@ export default function HabitCard({ habit, stats, completedDates }: HabitCardPro
         </div>
       </div>
 
-      <button
-        ref={buttonRef}
-        onClick={handleToggle}
-        disabled={isPending}
-        className={`flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold transition-all active:scale-[0.97] disabled:opacity-70 ${
-          stats.completedToday
-            ? `bg-gradient-to-br text-white shadow-md ${theme.gradient}`
-            : `${theme.chipBg} ${theme.text} hover:brightness-95`
-        }`}
-      >
-        <motion.span
-          key={stats.completedToday ? "done" : "todo"}
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", stiffness: 500, damping: 20 }}
-          className="flex items-center gap-2"
-        >
-          <Check size={16} strokeWidth={3} />
+      <div className="flex flex-col items-center gap-1.5 py-1">
+        <div className="relative">
+          <AnimatePresence>
+            {stats.completedToday && (
+              <motion.span
+                key="ripple"
+                initial={{ scale: 0.6, opacity: 0.55 }}
+                animate={{ scale: 2.1, opacity: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className={`pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br ${theme.gradient}`}
+              />
+            )}
+          </AnimatePresence>
+
+          <motion.button
+            ref={buttonRef}
+            onClick={handleToggle}
+            disabled={isPending}
+            aria-pressed={stats.completedToday}
+            aria-label={stats.completedToday ? "Mark not done" : "Mark done"}
+            whileTap={{ scale: 0.86 }}
+            animate={stats.completedToday ? { scale: [1, 1.22, 1] } : { scale: 1 }}
+            transition={
+              stats.completedToday
+                ? { scale: { duration: 0.42, times: [0, 0.45, 1], ease: "easeOut" } }
+                : { type: "spring", stiffness: 420, damping: 14 }
+            }
+            className={`relative flex h-16 w-16 items-center justify-center rounded-full transition-colors disabled:opacity-70 ${
+              stats.completedToday
+                ? `bg-gradient-to-br text-white shadow-lg ${theme.gradient}`
+                : `${theme.chipBg} ${theme.text} shadow-sm hover:brightness-95`
+            }`}
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {stats.completedToday ? (
+                <motion.svg
+                  key="check"
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <motion.path
+                    d="M4 12.5L9.5 18L20 6"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 0.35, ease: "easeOut", delay: 0.05 }}
+                  />
+                </motion.svg>
+              ) : (
+                <motion.span
+                  key="plus"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Check size={26} strokeWidth={2.5} className="opacity-40" />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
+        </div>
+        <span className="text-xs font-medium text-muted">
           {stats.completedToday ? "Done today" : "Mark done"}
-        </motion.span>
-      </button>
+        </span>
+      </div>
 
       <div className="flex items-center justify-between text-xs text-muted">
         <span>{habit.pointStake} pts at stake</span>
